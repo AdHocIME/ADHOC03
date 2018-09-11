@@ -1,0 +1,16 @@
+usbd_rndis.c:434:17:USBD_RNDIS_Init	24	static
+usbd_rndis.c:522:17:USBD_RNDIS_DeInit	24	static
+usbd_rndis.c:558:17:USBD_RNDIS_Setup	24	static
+usbd_rndis.c:612:17:USBD_RNDIS_DataIn	24	static
+usbd_rndis.c:636:17:USBD_RNDIS_DataOut	24	static
+usbd_rndis.c:666:17:USBD_RNDIS_EP0_RxReady	24	static
+usbd_rndis.c:688:18:USBD_RNDIS_GetFSCfgDesc	16	static
+usbd_rndis.c:701:18:USBD_RNDIS_GetHSCfgDesc	16	static
+usbd_rndis.c:714:18:USBD_RNDIS_GetOtherSpeedCfgDesc	16	static
+usbd_rndis.c:726:11:USBD_RNDIS_GetDeviceQualifierDescriptor	16	static
+usbd_rndis.c:738:10:USBD_RNDIS_RegisterInterface	24	static
+usbd_rndis.c:758:10:USBD_RNDIS_SetTxBuffer	32	static
+usbd_rndis.c:777:10:USBD_RNDIS_SetRxBuffer	24	static
+usbd_rndis.c:794:10:USBD_RNDIS_TransmitPacket	24	static
+usbd_rndis.c:831:10:USBD_RNDIS_ReceivePacket	24	static
+usbd_rndis.c:874:10:USBD_RNDIS_TransmitControl	24	static

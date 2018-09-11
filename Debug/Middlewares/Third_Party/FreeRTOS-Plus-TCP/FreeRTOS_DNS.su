@@ -1,0 +1,12 @@
+FreeRTOS_IP_Private.h:727:28:usChar2u16	16	static
+FreeRTOS_DNS.c:256:11:FreeRTOS_dnslookup	24	static
+FreeRTOS_DNS.c:410:10:FreeRTOS_gethostbyname	32	static
+FreeRTOS_DNS.c:483:17:prvGetHostByName	88	static
+FreeRTOS_DNS.c:601:15:prvCreateDNSMessage	48	static
+FreeRTOS_DNS.c:675:18:prvReadNameField	32	static
+FreeRTOS_DNS.c:750:17:prvSkipNameField	24	static
+FreeRTOS_DNS.c:810:10:ulDNSHandlePacket	32	static
+FreeRTOS_DNS.c:858:17:prvParseDNSReply	112	static
+FreeRTOS_DNS.c:1262:17:prvCreateDNSSocket	40	static
+FreeRTOS_DNS.c:1296:14:prvReplyDNSMessage	32	static
+FreeRTOS_DNS.c:1340:14:prvProcessDNSCache	48	static

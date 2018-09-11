@@ -1,0 +1,9 @@
+FreeRTOS_ARP.c:108:26:eARPProcessPacket	32	static
+FreeRTOS_ARP.c:212:6:vARPRefreshCacheEntry	40	static
+FreeRTOS_ARP.c:371:20:eARPGetCacheEntry	24	static
+FreeRTOS_ARP.c:461:27:prvCacheLookup	24	static
+FreeRTOS_ARP.c:493:6:vARPAgeCache	16	static
+FreeRTOS_ARP.c:545:6:vARPSendGratuitous	8	static
+FreeRTOS_ARP.c:556:6:FreeRTOS_OutputARPRequest	24	static
+FreeRTOS_ARP.c:588:6:vARPGenerateRequestPacket	40	static
+FreeRTOS_ARP.c:618:6:FreeRTOS_ClearARP	8	static

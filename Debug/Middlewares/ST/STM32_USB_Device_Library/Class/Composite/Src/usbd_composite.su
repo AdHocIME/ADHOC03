@@ -1,0 +1,17 @@
+usbd_composite.c:267:17:USBD_COMPOSITE_Init	24	static
+usbd_composite.c:291:17:USBD_COMPOSITE_DeInit	24	static
+usbd_composite.c:318:17:USBD_COMPOSITE_Setup	24	static
+usbd_composite.c:370:9:USBD_COMPOSITE_GetClassIndexFromEP	24	static
+usbd_composite.c:398:17:USBD_COMPOSITE_DataIn	32	static
+usbd_composite.c:430:17:USBD_COMPOSITE_DataOut	32	static
+usbd_composite.c:463:17:USBD_COMPOSITE_EP0_RxReady	24	static
+usbd_composite.c:487:17:USBD_COMPOSITE_EP0_TxReady	24	static
+usbd_composite.c:510:17:USBD_COMPOSITE_SOF	24	static
+usbd_composite.c:536:17:USBD_COMPOSITE_IsoINIncomplete	32	static
+usbd_composite.c:566:17:USBD_COMPOSITE_IsoOutIncomplete	32	static
+usbd_composite.c:599:18:USBD_COMPOSITE_GetFSCfgDesc	16	static
+usbd_composite.c:612:18:USBD_COMPOSITE_GetHSCfgDesc	16	static
+usbd_composite.c:624:18:USBD_COMPOSITE_GetOtherSpeedCfgDesc	16	static
+usbd_composite.c:635:11:USBD_COMPOSITE_GetDeviceQualifierDescriptor	16	static
+usbd_composite.c:641:21:USBD_COMPOSITE_RegisterClass	56	static
+usbd_composite.c:744:10:USBD_COMPOSITE_LL_EP_Conversion	24	static
