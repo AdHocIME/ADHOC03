@@ -108,7 +108,7 @@ task.  This setting is less important when the FreeRTOS Win32 simulator is used
 as the Win32 simulator only stores a fixed amount of information on the task
 stack.  FreeRTOS includes optional stack overflow detection, see:
 http://www.freertos.org/Stacks-and-stack-overflow-checking.html */
-#define ipconfigIP_TASK_STACK_SIZE_WORDS	( configMINIMAL_STACK_SIZE * 5 )
+#define ipconfigIP_TASK_STACK_SIZE_WORDS	( configMINIMAL_STACK_SIZE * 10 )
 
 /* ipconfigRAND32() is called by the IP stack to generate random numbers for
 things such as a DHCP transaction number or initial sequence number.  Random
@@ -137,7 +137,7 @@ free) the network buffers are themselves blocked waiting for a network buffer.
 ipconfigMAX_SEND_BLOCK_TIME_TICKS is specified in RTOS ticks.  A time in
 milliseconds can be converted to a time in ticks by dividing the time in
 milliseconds by portTICK_PERIOD_MS. */
-#define ipconfigUDP_MAX_SEND_BLOCK_TIME_TICKS ( 5000 / portTICK_PERIOD_MS )
+#define ipconfigUDP_MAX_SEND_BLOCK_TIME_TICKS ( 200 / portTICK_PERIOD_MS )
 
 /* If ipconfigUSE_DHCP is 1 then FreeRTOS+TCP will attempt to retrieve an IP
 address, netmask, DNS server address and gateway address from a DHCP server.  If
@@ -196,7 +196,7 @@ not set to 1 then only FreeRTOS_indet_addr_quick() is available. */
 are available to the IP stack.  The total number of network buffers is limited
 to ensure the total amount of RAM that can be consumed by the IP stack is capped
 to a pre-determinable value. */
-#define ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS		60
+#define ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS		120
 
 /* A FreeRTOS queue is used to send events from application tasks to the IP
 stack.  ipconfigEVENT_QUEUE_LENGTH sets the maximum number of events that can
@@ -284,10 +284,10 @@ simultaneously, one could define TCP_WIN_SEG_COUNT as 120. */
 
 /* Each TCP socket has a circular buffers for Rx and Tx, which have a fixed
 maximum size.  Define the size of Rx buffer for TCP sockets. */
-#define ipconfigTCP_RX_BUFFER_LENGTH			( 1000 )
+#define ipconfigTCP_RX_BUFFER_LENGTH			( 2200 )
 
 /* Define the size of Tx buffer for TCP sockets. */
-#define ipconfigTCP_TX_BUFFER_LENGTH			( 1000 )
+#define ipconfigTCP_TX_BUFFER_LENGTH			( 2200 )
 
 /* When using call-back handlers, the driver may check if the handler points to
 real program memory (RAM or flash) or just has a random non-zero value. */

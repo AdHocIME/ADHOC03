@@ -519,10 +519,10 @@ static int8_t RNDIS_Receive_FS (uint8_t* Buf, uint32_t *Len)
 		vTaskNotifyGiveFromISR(xEMACTaskHandle, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 		rndis_oid_gen_rcv_ok++;
-	} else {
-		USBD_RNDIS_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS_Temp);
-		USBD_RNDIS_ReceivePacket(&hUsbDeviceFS);
 	}
+	USBD_RNDIS_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS_Temp);
+	USBD_RNDIS_ReceivePacket(&hUsbDeviceFS);
+
 	return (USBD_OK);
 	/* USER CODE END 6 */
 }
@@ -607,13 +607,7 @@ BaseType_t xNetworkInterfaceOutput( NetworkBufferDescriptor_t * const pxDescript
 	    by pxDescriptor->xDataLength. */
 
 	uint8_t retries=0;
-	while(RNDIS_Transmit_FS( pxDescriptor->pucEthernetBuffer, pxDescriptor->xDataLength) ){
-		vTaskDelay(5);
-		retries++;
-		if(retries>=5){
-			break;
-		}
-	}
+	RNDIS_Transmit_FS( pxDescriptor->pucEthernetBuffer, pxDescriptor->xDataLength);
 
 	iptraceNETWORK_INTERFACE_TRANSMIT();
 
@@ -741,8 +735,6 @@ static void prvEMACHandlerTask( void *pvParameters ){
 				iptraceETHERNET_RX_EVENT_LOST();
 			}
 		}
-		USBD_RNDIS_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS_Temp);
-		USBD_RNDIS_ReceivePacket(&hUsbDeviceFS);
 
 	}
 }

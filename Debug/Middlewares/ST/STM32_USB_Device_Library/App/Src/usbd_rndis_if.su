@@ -6,5 +6,5 @@ usbd_rndis_if.c:504:15:RNDIS_Receive_FS	32	static
 usbd_rndis_if.c:541:9:RNDIS_Transmit_FS	40	static
 usbd_rndis_if.c:579:12:xNetworkInterfaceInitialise	24	static
 usbd_rndis_if.c:599:12:xNetworkInterfaceOutput	24	static
-usbd_rndis_if.c:637:12:xGetPhyLinkStatus	16	static
-usbd_rndis_if.c:652:13:prvEMACHandlerTask	32	static
+usbd_rndis_if.c:631:12:xGetPhyLinkStatus	16	static
+usbd_rndis_if.c:646:13:prvEMACHandlerTask	32	static

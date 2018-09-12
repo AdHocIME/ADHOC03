@@ -308,6 +308,8 @@ volatile uint32_t ulMallocFailures = 0;
 	timers, and semaphores.  The size of the FreeRTOS heap is set by the
 	configTOTAL_HEAP_SIZE configuration constant in FreeRTOSConfig.h. */
 	ulMallocFailures++;
+	taskDISABLE_INTERRUPTS();
+	for( ;; );
 }
 
 void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
