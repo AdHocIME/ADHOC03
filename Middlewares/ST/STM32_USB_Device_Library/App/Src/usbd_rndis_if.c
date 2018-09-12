@@ -607,13 +607,13 @@ BaseType_t xNetworkInterfaceOutput( NetworkBufferDescriptor_t * const pxDescript
 	    by pxDescriptor->xDataLength. */
 
 	uint8_t retries=0;
-//	while(RNDIS_Transmit_FS( pxDescriptor->pucEthernetBuffer, pxDescriptor->xDataLength) ){
-//		vTaskDelay(5);
-//		retries++;
-//		if(retries>=5){
-//			break;
-//		}
-//	}
+	while(RNDIS_Transmit_FS( pxDescriptor->pucEthernetBuffer, pxDescriptor->xDataLength) ){
+		vTaskDelay(5);
+		retries++;
+		if(retries>=5){
+			break;
+		}
+	}
 
 	iptraceNETWORK_INTERFACE_TRANSMIT();
 
@@ -671,76 +671,76 @@ static void prvEMACHandlerTask( void *pvParameters ){
 		xBytesReceived = UserRxSize;
 		//timestamp=ullGetHighResolutionTime()-timestamp;
 
-//		if( xBytesReceived > 44 )
-//		{
-//			xBytesReceived-=44;
-//			/* Allocate a network buffer descriptor that points to a buffer
-//	            large enough to hold the received frame.  As this is the simple
-//	            rather than efficient example the received data will just be copied
-//	            into this buffer. */
-//			pxBufferDescriptor = pxGetNetworkBufferWithDescriptor( xBytesReceived, 0 );
-//
-//			if( pxBufferDescriptor != NULL )
-//			{
-//				/* pxBufferDescriptor->pucEthernetBuffer now points to an Ethernet
-//	                buffer large enough to hold the received data.  Copy the
-//	                received data into pcNetworkBuffer->pucEthernetBuffer.  Here it
-//	                is assumed ReceiveData() is a peripheral driver function that
-//	                copies the received data into a buffer passed in as the function's
-//	                parameter.  Remember! While is is a simple robust technique -
-//	                it is not efficient.  An example that uses a zero copy technique
-//	                is provided further down this page. */
-//				memcpy(pxBufferDescriptor->pucEthernetBuffer, UserRxBufferFS+44, xBytesReceived);
-//				UserRxSize=0;
-//				pxBufferDescriptor->xDataLength = xBytesReceived;
-//
-//				/* See if the data contained in the received Ethernet frame needs
-//	                to be processed.  NOTE! It is preferable to do this in
-//	                the interrupt service routine itself, which would remove the need
-//	                to unblock this task for packets that don't need processing. */
-//				if( eConsiderFrameForProcessing( pxBufferDescriptor->pucEthernetBuffer )
-//						== eProcessBuffer )
-//				{
-//					/* The event about to be sent to the TCP/IP is an Rx event. */
-//					xRxEvent.eEventType = eNetworkRxEvent;
-//
-//					/* pvData is used to point to the network buffer descriptor that
-//	                    now references the received data. */
-//					xRxEvent.pvData = ( void * ) pxBufferDescriptor;
-//
-//					/* Send the data to the TCP/IP stack. */
-//					if( xSendEventStructToIPTask( &xRxEvent, 0 ) == pdFALSE )
-//					{
-//						/* The buffer could not be sent to the IP task so the buffer
-//	                        must be released. */
-//						vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
-//
-//						/* Make a call to the standard trace macro to log the
-//	                        occurrence. */
-//						iptraceETHERNET_RX_EVENT_LOST();
-//					}
-//					else
-//					{
-//						/* The message was successfully sent to the TCP/IP stack.
-//	                        Call the standard trace macro to log the occurrence. */
-//						iptraceNETWORK_INTERFACE_RECEIVE();
-//						HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-//					}
-//				}
-//				else
-//				{
-//					/* The Ethernet frame can be dropped, but the Ethernet buffer
-//	                    must be released. */
-//					vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
-//				}
-//			}
-//			else
-//			{
-//				/* The event was lost because a network buffer was not available.
-//	                Call the standard trace macro to log the occurrence. */
-//				iptraceETHERNET_RX_EVENT_LOST();
-//			}
-//		}
+		if( xBytesReceived > 44 )
+		{
+			xBytesReceived-=44;
+			/* Allocate a network buffer descriptor that points to a buffer
+	            large enough to hold the received frame.  As this is the simple
+	            rather than efficient example the received data will just be copied
+	            into this buffer. */
+			pxBufferDescriptor = pxGetNetworkBufferWithDescriptor( xBytesReceived, 0 );
+
+			if( pxBufferDescriptor != NULL )
+			{
+				/* pxBufferDescriptor->pucEthernetBuffer now points to an Ethernet
+	                buffer large enough to hold the received data.  Copy the
+	                received data into pcNetworkBuffer->pucEthernetBuffer.  Here it
+	                is assumed ReceiveData() is a peripheral driver function that
+	                copies the received data into a buffer passed in as the function's
+	                parameter.  Remember! While is is a simple robust technique -
+	                it is not efficient.  An example that uses a zero copy technique
+	                is provided further down this page. */
+				memcpy(pxBufferDescriptor->pucEthernetBuffer, UserRxBufferFS+44, xBytesReceived);
+				UserRxSize=0;
+				pxBufferDescriptor->xDataLength = xBytesReceived;
+
+				/* See if the data contained in the received Ethernet frame needs
+	                to be processed.  NOTE! It is preferable to do this in
+	                the interrupt service routine itself, which would remove the need
+	                to unblock this task for packets that don't need processing. */
+				if( eConsiderFrameForProcessing( pxBufferDescriptor->pucEthernetBuffer )
+						== eProcessBuffer )
+				{
+					/* The event about to be sent to the TCP/IP is an Rx event. */
+					xRxEvent.eEventType = eNetworkRxEvent;
+
+					/* pvData is used to point to the network buffer descriptor that
+	                    now references the received data. */
+					xRxEvent.pvData = ( void * ) pxBufferDescriptor;
+
+					/* Send the data to the TCP/IP stack. */
+					if( xSendEventStructToIPTask( &xRxEvent, 0 ) == pdFALSE )
+					{
+						/* The buffer could not be sent to the IP task so the buffer
+	                        must be released. */
+						vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
+
+						/* Make a call to the standard trace macro to log the
+	                        occurrence. */
+						iptraceETHERNET_RX_EVENT_LOST();
+					}
+					else
+					{
+						/* The message was successfully sent to the TCP/IP stack.
+	                        Call the standard trace macro to log the occurrence. */
+						iptraceNETWORK_INTERFACE_RECEIVE();
+						HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+					}
+				}
+				else
+				{
+					/* The Ethernet frame can be dropped, but the Ethernet buffer
+	                    must be released. */
+					vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
+				}
+			}
+			else
+			{
+				/* The event was lost because a network buffer was not available.
+	                Call the standard trace macro to log the occurrence. */
+				iptraceETHERNET_RX_EVENT_LOST();
+			}
+		}
 		USBD_RNDIS_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS_Temp);
 		USBD_RNDIS_ReceivePacket(&hUsbDeviceFS);
 
