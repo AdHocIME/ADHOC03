@@ -85,7 +85,7 @@
 /* It's up to user to redefine and/or remove those define */
 #define APP_RX_DATA_SIZE  2048
 #define APP_TX_DATA_SIZE  2048
-#define DeviceID_8 ((uint8_t*)0x1FFF7A10)
+#define DeviceID_8 ((uint8_t*)0x00000000)
 
 /* USER CODE END PRIVATE_DEFINES */
 /**
@@ -112,12 +112,14 @@ static uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 static uint8_t UserRxBufferFS_Temp[64];
 static uint64_t rndis_oid_gen_xmit_ok=0;
 static uint64_t rndis_oid_gen_rcv_ok=0;
+static uint16_t receivedAcumulatorLen=0;
 
 uint16_t UserRxSize=0;
 static enum{
-	RNDIS_STATE_NORMAL,
-	RNDIS_STATE_HALTED
-} rndis_state=RNDIS_STATE_HALTED;
+	RNDIS_STATE_UNINITIALIZED,
+	RNDIS_STATE_INITIALIZED,
+	RNDIS_STATE_DATA_INITIALIZED
+} rndis_state=RNDIS_STATE_UNINITIALIZED;
 
 
 /* Send Data over USB RNDIS are stored in this buffer       */
@@ -227,7 +229,7 @@ const uint32_t response[]={
 void RNDIS_Disconnect(){
 	rndis_oid_gen_xmit_ok=0;
 	rndis_oid_gen_rcv_ok=0;
-	rndis_state=RNDIS_STATE_HALTED;
+	rndis_state=RNDIS_STATE_UNINITIALIZED;
 	FreeRTOS_NetworkDownFromISR();
 }
 
@@ -241,7 +243,6 @@ static int8_t RNDIS_Init_FS(void)
 { 
 	/* USER CODE BEGIN 3 */
 	/* Set Application Buffers */
-	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 	USBD_RNDIS_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
 	USBD_RNDIS_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS_Temp);
 	//RNDIS_Disconnect();
@@ -291,14 +292,14 @@ static int8_t RNDIS_Control_FS  (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 			rndis_data.MajorVersion=buf32[3];
 			rndis_data.MinorVersion=buf32[4];
 			rndis_data.MaxTransferSize=buf32[5];
-			rndis_state=RNDIS_STATE_NORMAL;
+			rndis_state=RNDIS_STATE_INITIALIZED;
 			hrndis->TxState=0;
 			USBD_RNDIS_TransmitControl(&hUsbDeviceFS, (uint8_t*)response, 8);
 		} else if(buf32[0]==RNDIS_MSG_HALT){
 			//SEC RNDIS_MSG_HALT
 			hrndis->TxState=1;
 			RNDIS_Disconnect();
-			rndis_state=RNDIS_STATE_HALTED;
+			rndis_state=RNDIS_STATE_UNINITIALIZED;
 		} else if(buf32[0]==RNDIS_MSG_QUERY){
 			//SEC RNDIS_MSG_QUERY
 			rndis_data.Oid=buf32[3];
@@ -382,8 +383,8 @@ static int8_t RNDIS_Control_FS  (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 			case RNDIS_OID_802_3_CURRENT_ADDRESS:
 				buf32[pos++]=6;
 				buf32[pos++]=16;
-				buf32[pos++]=0x00757840 | (DeviceID_8[0]<<24);
-				buf32[pos++]=DeviceID_8[2]<<8 | DeviceID_8[1];
+				buf32[pos++]=0x33221100;
+				buf32[pos++]=0x5544;
 				len=buf32[1]=pos*4-2;
 				break;
 			case RNDIS_OID_802_3_PERMANENT_ADDRESS:
@@ -396,7 +397,7 @@ static int8_t RNDIS_Control_FS  (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 			case RNDIS_OID_GEN_MAXIMUM_TOTAL_SIZE:
 				buf32[pos++]=4;
 				buf32[pos++]=16;
-				buf32[pos++]=1558;
+				buf32[pos++]=1514;
 				break;
 			case RNDIS_OID_GEN_XMIT_OK:
 				buf32[pos++]=4;
@@ -442,6 +443,8 @@ static int8_t RNDIS_Control_FS  (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 			}
 		} else if(rndis_data.MessageType==RNDIS_MSG_SET){
 			//GER RNDIS_MSG_SET OID
+			rndis_state=RNDIS_STATE_DATA_INITIALIZED;
+			HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 			buf32[pos++]=RNDIS_MSG_SET_C;
 			pos++;
 			buf32[pos++]=rndis_data.RequestId;
@@ -504,21 +507,23 @@ static int8_t RNDIS_Control_FS  (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t RNDIS_Receive_FS (uint8_t* Buf, uint32_t *Len)
 {
 	BaseType_t xHigherPriorityTaskWoken;
-	static uint16_t len=0;
 
 	if(*Len>64){
 		*Len=64;
 	}
-	memcpy(UserRxBufferFS+len, UserRxBufferFS_Temp, *Len);
-	len+=(*Len);
+	memcpy(UserRxBufferFS+receivedAcumulatorLen, UserRxBufferFS_Temp, *Len);
+	receivedAcumulatorLen+=(*Len);
 
-	if(*Len!=64 && xEMACTaskHandle!=0){
-		UserRxSize=len;
+	if(*Len!=64 && xEMACTaskHandle!=0 && rndis_state==RNDIS_STATE_DATA_INITIALIZED){
+		UserRxSize=receivedAcumulatorLen;
 		//timestamp=ullGetHighResolutionTime();
-		len=0;
+		receivedAcumulatorLen=0;
 		vTaskNotifyGiveFromISR(xEMACTaskHandle, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 		rndis_oid_gen_rcv_ok++;
+	}
+	if(receivedAcumulatorLen>1600){
+		receivedAcumulatorLen = 1600;
 	}
 	USBD_RNDIS_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS_Temp);
 	USBD_RNDIS_ReceivePacket(&hUsbDeviceFS);
@@ -544,7 +549,7 @@ uint8_t RNDIS_Transmit_FS(uint8_t* Buf, uint16_t Len)
 	uint8_t result = USBD_OK;
 	/* USER CODE BEGIN 7 */
 	USBD_RNDIS_HandleTypeDef *hrndis = (USBD_RNDIS_HandleTypeDef*)hUsbDeviceFS.pClassData;
-	if (hrndis->TxState != 0 || rndis_state!=RNDIS_STATE_NORMAL){
+	if (hrndis->TxState != 0 || rndis_state!=RNDIS_STATE_DATA_INITIALIZED){
 		return USBD_BUSY;
 	}
 
@@ -585,7 +590,7 @@ BaseType_t xNetworkInterfaceInitialise( void ){
 	possible priority to ensure the interrupt handler can return directly
 	to it.  The task's handle is stored in xEMACTaskHandle so interrupts can
 	notify the task when there is something to process. */
-	if(rndis_state==RNDIS_STATE_NORMAL){
+	if(rndis_state==RNDIS_STATE_INITIALIZED){
 		ret=1;
 		if(xEMACTaskHandle==0){
 			xTaskCreate( prvEMACHandlerTask, "EMAC", configEMAC_TASK_STACK_SIZE, NULL, configMAX_PRIORITIES - 1, &xEMACTaskHandle );
@@ -631,7 +636,7 @@ BaseType_t xNetworkInterfaceOutput( NetworkBufferDescriptor_t * const pxDescript
 BaseType_t xGetPhyLinkStatus( void ){
 		BaseType_t xReturn;
 
-		if( rndis_state == RNDIS_STATE_NORMAL )
+		if( rndis_state == RNDIS_STATE_DATA_INITIALIZED )
 		{
 			xReturn = pdPASS;
 		}
