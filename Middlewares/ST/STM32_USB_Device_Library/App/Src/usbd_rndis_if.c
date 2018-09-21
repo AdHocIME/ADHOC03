@@ -514,16 +514,18 @@ static int8_t RNDIS_Receive_FS (uint8_t* Buf, uint32_t *Len)
 	memcpy(UserRxBufferFS+receivedAcumulatorLen, UserRxBufferFS_Temp, *Len);
 	receivedAcumulatorLen+=(*Len);
 
-	if(*Len!=64 && xEMACTaskHandle!=0 && rndis_state==RNDIS_STATE_DATA_INITIALIZED){
-		UserRxSize=receivedAcumulatorLen;
+	if(*Len!=64){
 		//timestamp=ullGetHighResolutionTime();
+		if(xEMACTaskHandle!=0 && rndis_state==RNDIS_STATE_DATA_INITIALIZED){
+			UserRxSize=receivedAcumulatorLen;
+			vTaskNotifyGiveFromISR(xEMACTaskHandle, &xHigherPriorityTaskWoken);
+			portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+			rndis_oid_gen_rcv_ok++;
+		}
 		receivedAcumulatorLen=0;
-		vTaskNotifyGiveFromISR(xEMACTaskHandle, &xHigherPriorityTaskWoken);
-		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-		rndis_oid_gen_rcv_ok++;
 	}
 	if(receivedAcumulatorLen>1600){
-		receivedAcumulatorLen = 1600;
+		receivedAcumulatorLen = 0;
 	}
 	USBD_RNDIS_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS_Temp);
 	USBD_RNDIS_ReceivePacket(&hUsbDeviceFS);
@@ -590,7 +592,7 @@ BaseType_t xNetworkInterfaceInitialise( void ){
 	possible priority to ensure the interrupt handler can return directly
 	to it.  The task's handle is stored in xEMACTaskHandle so interrupts can
 	notify the task when there is something to process. */
-	if(rndis_state==RNDIS_STATE_INITIALIZED){
+	if(rndis_state==RNDIS_STATE_INITIALIZED || rndis_state==RNDIS_STATE_DATA_INITIALIZED || 1){
 		ret=1;
 		if(xEMACTaskHandle==0){
 			xTaskCreate( prvEMACHandlerTask, "EMAC", configEMAC_TASK_STACK_SIZE, NULL, configMAX_PRIORITIES - 1, &xEMACTaskHandle );

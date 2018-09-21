@@ -65,6 +65,19 @@ osThreadId defaultTaskHandle;
 #define mainHOST_NAME					"RTOSDemo"
 #define mainDEVICE_NICK_NAME			"stm32"
 
+static TaskHandle_t xServerWorkTaskHandle = NULL;
+static void prvServerWorkTask( void *pvParameters );
+static void prvServerConnectionInstance( void *pvParameters );
+
+#define ipconfigHTTP_TX_BUFSIZE				( 3 * ipconfigTCP_MSS )
+#define ipconfigHTTP_TX_WINSIZE				( 2 )
+#define ipconfigHTTP_RX_BUFSIZE				( 4 * ipconfigTCP_MSS )
+#define ipconfigHTTP_RX_WINSIZE				( 4 )
+
+/* FTP and HTTP servers execute in the TCP server work task. */
+#define mainTCP_SERVER_TASK_PRIORITY	( tskIDLE_PRIORITY + 3 )
+#define	mainTCP_SERVER_STACK_SIZE		( configMINIMAL_STACK_SIZE * 8 )
+
 #ifndef configIPINIT_TASK_STACK_SIZE
 	#define configIPINIT_TASK_STACK_SIZE ( 4 * configMINIMAL_STACK_SIZE )
 #endif
@@ -267,6 +280,159 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
+{
+static BaseType_t xTasksAlreadyCreated = pdFALSE;
+
+    /* Both eNetworkUp and eNetworkDown events can be processed here. */
+    if( eNetworkEvent == eNetworkUp )
+    {
+        /* Create the tasks that use the TCP/IP stack if they have not already
+        been created. */
+        if( xTasksAlreadyCreated == pdFALSE )
+        {
+            /*
+             * For convenience, tasks that use FreeRTOS+TCP can be created here
+             * to ensure they are not created before the network is usable.
+             */
+        	xTaskCreate( prvServerWorkTask, "SvrWork", mainTCP_SERVER_STACK_SIZE, NULL, mainTCP_SERVER_TASK_PRIORITY, &xServerWorkTaskHandle );
+
+            xTasksAlreadyCreated = pdTRUE;
+        }
+    }
+}
+#define BUFFER_SIZE 500
+
+static void prvServerWorkTask( void *pvParameters )
+{
+	BaseType_t xNoTimeout = 0;
+
+	/* The priority of this task can be raised now the disk has been
+	initialised. */
+//	vTaskPrioritySet( NULL, mainTCP_SERVER_TASK_PRIORITY );
+
+	/* Wait until the network is up before creating the servers.  The
+	notification is given from the network event hook. */
+	//ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
+
+	struct freertos_sockaddr xClient, xBindAddress;
+
+	Socket_t xSocket, xConnectedSocket;
+
+	xSocket = FreeRTOS_socket( FREERTOS_AF_INET, FREERTOS_SOCK_STREAM, FREERTOS_IPPROTO_TCP );
+
+	if( xSocket != FREERTOS_INVALID_SOCKET  )
+	{
+		xBindAddress.sin_addr = FreeRTOS_GetIPAddress(); // Single NIC, currently not used
+		xBindAddress.sin_port = FreeRTOS_htons( 80 );
+		socklen_t xAddressLength = sizeof( xBindAddress );
+		FreeRTOS_bind( xSocket, &xBindAddress, xAddressLength );
+		FreeRTOS_listen( xSocket, 12 );
+
+		FreeRTOS_setsockopt( xSocket, 0, FREERTOS_SO_RCVTIMEO, ( void * ) &xNoTimeout, sizeof( BaseType_t ) );
+		FreeRTOS_setsockopt( xSocket, 0, FREERTOS_SO_SNDTIMEO, ( void * ) &xNoTimeout, sizeof( BaseType_t ) );
+
+
+		WinProperties_t xWinProps;
+
+		memset( &xWinProps, '\0', sizeof( xWinProps ) );
+		/* The parent socket itself won't get connected.  The properties below
+		will be inherited by each new child socket. */
+		xWinProps.lTxBufSize = ipconfigHTTP_TX_BUFSIZE;
+		xWinProps.lTxWinSize = ipconfigHTTP_TX_WINSIZE;
+		xWinProps.lRxBufSize = ipconfigHTTP_RX_BUFSIZE;
+		xWinProps.lRxWinSize = ipconfigHTTP_RX_WINSIZE;
+
+		/* Set the window and buffer sizes. */
+		FreeRTOS_setsockopt( xSocket, 0, FREERTOS_SO_WIN_PROPERTIES, ( void * ) &xWinProps,	sizeof( xWinProps ) );
+		for( ;; )
+		{
+	        osDelay(250);
+			/* Wait for incoming connections. */
+//			socklen_t xClientLength = sizeof( xClient );
+//			xConnectedSocket = FreeRTOS_accept( xSocket, &xClient, &xClientLength );
+//			configASSERT( xConnectedSocket != FREERTOS_INVALID_SOCKET );
+//
+//			static char cRxedData[ BUFFER_SIZE ];
+//			BaseType_t lBytesReceived;
+//	        lBytesReceived = FreeRTOS_recv( xSocket, &cRxedData, BUFFER_SIZE, 0 );
+//
+//			/* Spawn a RTOS task to handle the connection. */
+//			//xTaskCreate( prvServerConnectionInstance, "EchoServer", configMINIMAL_STACK_SIZE*2, ( void * ) xConnectedSocket, tskIDLE_PRIORITY,  NULL );
+//        	char message[] = "HTTP/1.1 200 OK\r\nConnection: close\r\n" \
+//        			   "Content-Type: text/html; charset=UTF-8\r\n\r\n" \
+//        			   "<html><body>Hello!<br>" \
+//        		       "<form method='POST' action='led'>" \
+//        		       "GREEN LED=<input type='text' name='GREEN' value='0' /><br/>" \
+//        		       "ORANGE LED=<input type='text' name='ORANGE' value='0' /><br/>" \
+//        		       "RED LED=<input type='text' name='RED' value='0' /><br/>" \
+//        		       "BLUE LED=<input type='text' name='BLUE' value='0' /><br />" \
+//        		       "<input type='submit' />" \
+//        		       "</form>" \
+//					   "</body></html>";
+//			FreeRTOS_send( xSocket, &message, sizeof(message),0 );
+//		    FreeRTOS_closesocket( xSocket );
+		}
+	}
+}
+
+static void prvServerConnectionInstance( void *pvParameters )
+{
+	Socket_t xSocket;
+	static char cRxedData[ BUFFER_SIZE ];
+	BaseType_t lBytesReceived;
+
+    /* It is assumed the socket has already been created and connected before
+    being passed into this RTOS task using the RTOS task's parameter. */
+    xSocket = ( Socket_t ) pvParameters;
+
+    for( ;; )
+    {
+        /* Receive another block of data into the cRxedData buffer. */
+        lBytesReceived = FreeRTOS_recv( xSocket, &cRxedData, BUFFER_SIZE, 0 );
+
+        if( lBytesReceived > 0 )
+        {
+            /* Data was received, process it here. */
+
+        }
+        else if( lBytesReceived == 0 )
+        {
+            /* No data was received, but FreeRTOS_recv() did not return an error.
+            Timeout? */
+        }
+        else
+        {
+            /* Error (maybe the connected socket already shut down the socket?).
+            Attempt graceful shutdown. */
+            FreeRTOS_shutdown( xSocket, FREERTOS_SHUT_RDWR );
+            break;
+        }
+    }
+
+    /* The RTOS task will get here if an error is received on a read.  Ensure the
+    socket has shut down (indicated by FreeRTOS_recv() returning a FREERTOS_EINVAL
+    error before closing the socket). */
+
+    while( FreeRTOS_recv( xSocket, &cRxedData, BUFFER_SIZE, 0 ) >= 0 )
+    {
+        /* Wait for shutdown to complete.  If a receive block time is used then
+        this delay will not be necessary as FreeRTOS_recv() will place the RTOS task
+        into the Blocked state anyway. */
+        osDelay(250);
+
+        /* Note - real applications should implement a timeout here, not just
+        loop forever. */
+    }
+
+    /* Shutdown is complete and the socket can be safely closed. */
+    FreeRTOS_closesocket( xSocket );
+
+    /* Must not drop off the end of the RTOS task - delete the RTOS task. */
+    xTaskDelete( NULL );
+}
+
 const char *pcApplicationHostnameHook( void )
 {
 	/* Assign the name "rtosdemo" to this network node.  This function will be

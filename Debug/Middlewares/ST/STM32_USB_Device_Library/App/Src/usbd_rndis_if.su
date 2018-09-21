@@ -3,8 +3,8 @@ usbd_rndis_if.c:242:15:RNDIS_Init_FS	8	static
 usbd_rndis_if.c:259:15:RNDIS_DeInit_FS	8	static
 usbd_rndis_if.c:275:15:RNDIS_Control_FS	48	static
 usbd_rndis_if.c:507:15:RNDIS_Receive_FS	32	static
-usbd_rndis_if.c:546:9:RNDIS_Transmit_FS	40	static
-usbd_rndis_if.c:584:12:xNetworkInterfaceInitialise	24	static
-usbd_rndis_if.c:604:12:xNetworkInterfaceOutput	24	static
-usbd_rndis_if.c:636:12:xGetPhyLinkStatus	16	static
-usbd_rndis_if.c:651:13:prvEMACHandlerTask	32	static
+usbd_rndis_if.c:548:9:RNDIS_Transmit_FS	40	static
+usbd_rndis_if.c:586:12:xNetworkInterfaceInitialise	24	static
+usbd_rndis_if.c:606:12:xNetworkInterfaceOutput	24	static
+usbd_rndis_if.c:638:12:xGetPhyLinkStatus	16	static
+usbd_rndis_if.c:653:13:prvEMACHandlerTask	32	static
