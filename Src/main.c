@@ -350,29 +350,29 @@ static void prvServerWorkTask( void *pvParameters )
 		{
 	        osDelay(250);
 			/* Wait for incoming connections. */
-//			socklen_t xClientLength = sizeof( xClient );
-//			xConnectedSocket = FreeRTOS_accept( xSocket, &xClient, &xClientLength );
-//			configASSERT( xConnectedSocket != FREERTOS_INVALID_SOCKET );
-//
-//			static char cRxedData[ BUFFER_SIZE ];
-//			BaseType_t lBytesReceived;
-//	        lBytesReceived = FreeRTOS_recv( xSocket, &cRxedData, BUFFER_SIZE, 0 );
-//
-//			/* Spawn a RTOS task to handle the connection. */
-//			//xTaskCreate( prvServerConnectionInstance, "EchoServer", configMINIMAL_STACK_SIZE*2, ( void * ) xConnectedSocket, tskIDLE_PRIORITY,  NULL );
-//        	char message[] = "HTTP/1.1 200 OK\r\nConnection: close\r\n" \
-//        			   "Content-Type: text/html; charset=UTF-8\r\n\r\n" \
-//        			   "<html><body>Hello!<br>" \
-//        		       "<form method='POST' action='led'>" \
-//        		       "GREEN LED=<input type='text' name='GREEN' value='0' /><br/>" \
-//        		       "ORANGE LED=<input type='text' name='ORANGE' value='0' /><br/>" \
-//        		       "RED LED=<input type='text' name='RED' value='0' /><br/>" \
-//        		       "BLUE LED=<input type='text' name='BLUE' value='0' /><br />" \
-//        		       "<input type='submit' />" \
-//        		       "</form>" \
-//					   "</body></html>";
-//			FreeRTOS_send( xSocket, &message, sizeof(message),0 );
-//		    FreeRTOS_closesocket( xSocket );
+			socklen_t xClientLength = sizeof( xClient );
+			xConnectedSocket = FreeRTOS_accept( xSocket, &xClient, &xClientLength );
+			configASSERT( xConnectedSocket != FREERTOS_INVALID_SOCKET );
+
+			static char cRxedData[ BUFFER_SIZE ];
+			BaseType_t lBytesReceived;
+	        lBytesReceived = FreeRTOS_recv( xConnectedSocket, &cRxedData, BUFFER_SIZE, 0 );
+
+			/* Spawn a RTOS task to handle the connection. */
+			//xTaskCreate( prvServerConnectionInstance, "EchoServer", configMINIMAL_STACK_SIZE*2, ( void * ) xConnectedSocket, tskIDLE_PRIORITY,  NULL );
+        	char message[] = "HTTP/1.1 200 OK\r\nConnection: close\r\n" \
+        			   "Content-Type: text/html; charset=UTF-8\r\n\r\n" \
+        			   "<html><body>Hello!<br>" \
+        		       "<form method='POST' action='led'>" \
+        		       "GREEN LED=<input type='text' name='GREEN' value='0' /><br/>" \
+        		       "ORANGE LED=<input type='text' name='ORANGE' value='0' /><br/>" \
+        		       "RED LED=<input type='text' name='RED' value='0' /><br/>" \
+        		       "BLUE LED=<input type='text' name='BLUE' value='0' /><br />" \
+        		       "<input type='submit' />" \
+        		       "</form>" \
+					   "</body></html>";
+			FreeRTOS_send( xConnectedSocket, &message, sizeof(message),0 );
+		    FreeRTOS_closesocket( xConnectedSocket );
 		}
 	}
 }
