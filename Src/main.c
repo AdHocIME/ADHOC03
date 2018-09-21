@@ -64,10 +64,13 @@ osThreadId defaultTaskHandle;
 /* Private variables ---------------------------------------------------------*/
 #define mainHOST_NAME					"RTOSDemo"
 #define mainDEVICE_NICK_NAME			"stm32"
+#define NUM_LEDS	4
 
 static TaskHandle_t xServerWorkTaskHandle = NULL;
 static void prvServerWorkTask( void *pvParameters );
 static void prvServerConnectionInstance( void *pvParameters );
+
+#define FREERTOS_NO_SOCKET		NULL
 
 #define ipconfigHTTP_TX_BUFSIZE				( 3 * ipconfigTCP_MSS )
 #define ipconfigHTTP_TX_WINSIZE				( 2 )
@@ -302,7 +305,7 @@ static BaseType_t xTasksAlreadyCreated = pdFALSE;
         }
     }
 }
-#define BUFFER_SIZE 500
+#define BUFFER_SIZE 1500
 
 static void prvServerWorkTask( void *pvParameters )
 {
@@ -352,85 +355,57 @@ static void prvServerWorkTask( void *pvParameters )
 			/* Wait for incoming connections. */
 			socklen_t xClientLength = sizeof( xClient );
 			xConnectedSocket = FreeRTOS_accept( xSocket, &xClient, &xClientLength );
-			configASSERT( xConnectedSocket != FREERTOS_INVALID_SOCKET );
-
-			static char cRxedData[ BUFFER_SIZE ];
-			BaseType_t lBytesReceived;
-	        lBytesReceived = FreeRTOS_recv( xConnectedSocket, &cRxedData, BUFFER_SIZE, 0 );
-
-			/* Spawn a RTOS task to handle the connection. */
-			//xTaskCreate( prvServerConnectionInstance, "EchoServer", configMINIMAL_STACK_SIZE*2, ( void * ) xConnectedSocket, tskIDLE_PRIORITY,  NULL );
-        	char message[] = "HTTP/1.1 200 OK\r\nConnection: close\r\n" \
-        			   "Content-Type: text/html; charset=UTF-8\r\n\r\n" \
-        			   "<html><body>Hello!<br>" \
-        		       "<form method='POST' action='led'>" \
-        		       "GREEN LED=<input type='text' name='GREEN' value='0' /><br/>" \
-        		       "ORANGE LED=<input type='text' name='ORANGE' value='0' /><br/>" \
-        		       "RED LED=<input type='text' name='RED' value='0' /><br/>" \
-        		       "BLUE LED=<input type='text' name='BLUE' value='0' /><br />" \
-        		       "<input type='submit' />" \
-        		       "</form>" \
-					   "</body></html>";
-			FreeRTOS_send( xConnectedSocket, &message, sizeof(message),0 );
-		    FreeRTOS_closesocket( xConnectedSocket );
+			//configASSERT( xConnectedSocket != FREERTOS_INVALID_SOCKET );
+			if((xConnectedSocket != FREERTOS_NO_SOCKET)&&(xConnectedSocket != FREERTOS_INVALID_SOCKET)){
+				static char cRxedData[ BUFFER_SIZE ];
+				static char cTxedData[ BUFFER_SIZE ];
+				BaseType_t lBytesReceived;
+				lBytesReceived = FreeRTOS_recv( xConnectedSocket, &cRxedData, BUFFER_SIZE, 0 );
+				//			static char cTxedData[ BUFFER_SIZE ];
+				/* Spawn a RTOS task to handle the connection. */
+				//xTaskCreate( prvServerConnectionInstance, "EchoServer", configMINIMAL_STACK_SIZE*2, ( void * ) xConnectedSocket, tskIDLE_PRIORITY,  NULL );
+				char message1[] = "HTTP/1.1 200 OK\r\nConnection: close\r\n" \
+						   "Content-Type: text/html; charset=UTF-8\r\n\r\n" \
+						   "<html><body>Hello!<br>" \
+						   "<form method='POST' action='led'>" \
+						   "GREEN LED=<input type='text' name='GREEN' value='0' /><br/>" \
+						   "ORANGE LED=<input type='text' name='ORANGE' value='0' /><br/>" \
+						   "RED LED=<input type='text' name='RED' value='0' /><br/>" \
+						   "BLUE LED=<input type='text' name='BLUE' value='0' /><br />" \
+						   "<input type='submit' />" \
+						   "</form>" \
+						   "</body></html>";
+				char *httpMethods[4] = {"GET", "POST", "PUT", "DELETE"};
+				int8_t state, c;
+				int i;
+				c = 0;
+				uint16_t LEDs[NUM_LEDS] = {GPIO_PIN_12, GPIO_PIN_13, GPIO_PIN_14, GPIO_PIN_15};
+				if(memcmp(cRxedData, httpMethods[1], sizeof(httpMethods[1][0]))==0){
+					for(i=0; i<4; i++) {
+						char *LED_str[NUM_LEDS] = {"GREEN=", "ORANGE=", "RED=", "BLUE="};
+						char *str;
+						str = strstr(cRxedData, LED_str[i]);
+						if(str == NULL) {
+							/* Not found the corresponding LED color string. */
+							continue;
+						}
+						c += 1;
+						state = atoi(str + strlen(LED_str[i]));
+						/* Set the state of the corresponding LED. */
+						if(state == 1){
+							HAL_GPIO_WritePin(GPIOD, LEDs[i], GPIO_PIN_SET);
+						}
+						else if(state == 0){
+							HAL_GPIO_WritePin(GPIOD, LEDs[i], GPIO_PIN_RESET);
+						}
+					}
+				}
+	    		memcpy(cTxedData, message1, sizeof(message1));
+				FreeRTOS_send( xConnectedSocket, &message1, sizeof(message1),0 );
+				FreeRTOS_closesocket( xConnectedSocket );
+			}
 		}
 	}
-}
-
-static void prvServerConnectionInstance( void *pvParameters )
-{
-	Socket_t xSocket;
-	static char cRxedData[ BUFFER_SIZE ];
-	BaseType_t lBytesReceived;
-
-    /* It is assumed the socket has already been created and connected before
-    being passed into this RTOS task using the RTOS task's parameter. */
-    xSocket = ( Socket_t ) pvParameters;
-
-    for( ;; )
-    {
-        /* Receive another block of data into the cRxedData buffer. */
-        lBytesReceived = FreeRTOS_recv( xSocket, &cRxedData, BUFFER_SIZE, 0 );
-
-        if( lBytesReceived > 0 )
-        {
-            /* Data was received, process it here. */
-
-        }
-        else if( lBytesReceived == 0 )
-        {
-            /* No data was received, but FreeRTOS_recv() did not return an error.
-            Timeout? */
-        }
-        else
-        {
-            /* Error (maybe the connected socket already shut down the socket?).
-            Attempt graceful shutdown. */
-            FreeRTOS_shutdown( xSocket, FREERTOS_SHUT_RDWR );
-            break;
-        }
-    }
-
-    /* The RTOS task will get here if an error is received on a read.  Ensure the
-    socket has shut down (indicated by FreeRTOS_recv() returning a FREERTOS_EINVAL
-    error before closing the socket). */
-
-    while( FreeRTOS_recv( xSocket, &cRxedData, BUFFER_SIZE, 0 ) >= 0 )
-    {
-        /* Wait for shutdown to complete.  If a receive block time is used then
-        this delay will not be necessary as FreeRTOS_recv() will place the RTOS task
-        into the Blocked state anyway. */
-        osDelay(250);
-
-        /* Note - real applications should implement a timeout here, not just
-        loop forever. */
-    }
-
-    /* Shutdown is complete and the socket can be safely closed. */
-    FreeRTOS_closesocket( xSocket );
-
-    /* Must not drop off the end of the RTOS task - delete the RTOS task. */
-    xTaskDelete( NULL );
 }
 
 const char *pcApplicationHostnameHook( void )
@@ -502,7 +477,6 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
     osDelay(1000);
-	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
   }
   /* USER CODE END 5 */ 
 }
